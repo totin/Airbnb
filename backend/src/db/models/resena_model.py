@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, ForeignKey, Date, Text, CheckConstraint,
 from database import Base
 
 class Resena(Base):
-    __tablename__ = "resena"
+    __tablename__ = "resenas"
     id = Column(Integer, primary_key=True, index=True)
     reserva_id = Column(
         Integer,
