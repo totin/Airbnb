@@ -1,21 +1,49 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+# Importar el manejador de errores de tu carpeta utils
 from src.middlewares.error_middleware import app_error_handler
-from src.routers import auth_router, user_router, pasajero_router, conductores_router
 from src.utils.errors import AppError
 
-app = FastAPI(title="Initial Structure API")
+# Importar los routers de TU proyecto
+from src.routers import (
+    usuario_router,
+    propiedad_router,
+    reserva_router,
+    resena_router,
+    amenidad_router,
+    favorito_router,
+)
 
+app = FastAPI(title="Airbnb Clone API", version="1.0.0")
+
+# Manejador de excepciones global
 app.add_exception_handler(AppError, app_error_handler)
 
-app.include_router(user_router.router, prefix="/api")
-app.include_router(auth_router.router, prefix="/api")
-app.include_router(pasajero_router.router, prefix="/api")
-app.include_router(conductores_router.router, prefix="/api")
-# TODO: registrar product_router cuando se implemente
-# app.include_router(product_router.router, prefix="/api")
+# Habilitar CORS para que el frontend pueda conectarse sin bloqueos
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Registrar los routers de Airbnb
+app.include_router(usuario_router.router, prefix="/api/usuarios", tags=["Usuarios"])
+app.include_router(propiedad_router.router, prefix="/api/propiedades", tags=["Propiedades"])
+app.include_router(reserva_router.router, prefix="/api/reservas", tags=["Reservas"])
+app.include_router(resena_router.router, prefix="/api/resenas", tags=["Reseñas"])
+app.include_router(amenidad_router.router, prefix="/api/amenidades", tags=["Amenidades"])
+app.include_router(favorito_router.router, prefix="/api/favoritos", tags=["Favoritos"])
 
 
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 def health():
     return {"status": "ok"}
