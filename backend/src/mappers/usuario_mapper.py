@@ -3,5 +3,4 @@ from src.dtos.usuario_dto import UsuarioResponseDTO
 
 
 def to_usuario_response(usuario: Usuario) -> UsuarioResponseDTO:
-    """Convierte un Model SQLAlchemy en un DTO de respuesta."""
     return UsuarioResponseDTO.model_validate(usuario)
