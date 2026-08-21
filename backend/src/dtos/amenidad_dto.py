@@ -1,11 +1,11 @@
 from pydantic import BaseModel
 
 
-class AmenidadCreate(BaseModel):
+class CreateAmenidadDTO(BaseModel):
     nombre: str
 
 
-class AmenidadResponse(BaseModel):
+class ResponseAmenidadDTO(BaseModel):
     id: int
     nombre: str
 

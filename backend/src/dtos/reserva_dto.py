@@ -2,13 +2,13 @@ from pydantic import BaseModel
 from datetime import date
 
 
-class ReservaCreate(BaseModel):
+class CreateReservaDTO(BaseModel):
     propiedad_id: int
     fecha_inicio: date
     fecha_fin: date
 
 
-class ReservaResponse(BaseModel):
+class ResponseReservaDTO(BaseModel):
     id: int
     propiedad_id: int
     huesped_id: int

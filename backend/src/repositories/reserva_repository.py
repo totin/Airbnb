@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
-from models.reserva import Reserva
+from src.db.models.reserva import Reserva
 
 
 class ReservaRepository:
