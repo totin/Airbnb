@@ -1,7 +1,25 @@
-from src.db.models.resena_model import Resena
-from src.dtos.resena_dto import ResenaResponse
+from models.resena import Resena
+from dto.resena import ResenaCreate, ResenaResponse
 
 
-def to_resena_response(resena: Resena) -> ResenaResponse:
-    """Convierte un Model SQLAlchemy en un DTO de respuesta."""
-    return ResenaResponse.model_validate(resena)
+def resena_create_to_model(
+    dto: ResenaCreate,
+    autor_id: int
+) -> Resena:
+    return Resena(
+        reserva_id=dto.reserva_id,
+        autor_id=autor_id,
+        puntaje=dto.puntaje,
+        comentario=dto.comentario
+    )
+
+
+def resena_to_response(model: Resena) -> ResenaResponse:
+    return ResenaResponse(
+        id=model.id,
+        reserva_id=model.reserva_id,
+        autor_id=model.autor_id,
+        puntaje=model.puntaje,
+        comentario=model.comentario,
+        fecha=model.fecha
+    )
