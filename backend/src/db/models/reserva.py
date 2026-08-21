@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Date, Numeric, Enum, ForeignKey, CheckConstraint, Index
-from database import Base
+from src.db.connection import Base
 import enum
 
 class EstadoReserva(str, enum.Enum):

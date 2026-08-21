@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from database import Base
+from src.db.connection import Base
 
 class Favorito(Base):
     __tablename__ = "favoritos"

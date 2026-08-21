@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, ForeignKey, Date, Text, CheckConstraint, func
-from database import Base
+from src.db.connection import Base
 
 class Resena(Base):
     __tablename__ = "resenas"
