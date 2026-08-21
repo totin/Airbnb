@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, not_, exists
-from models.propiedad import Propiedad
-from models.reserva import Reserva
+from src.db.models.propiedad import Propiedad
+from src.db.models.reserva import Reserva
+
 
 
 class PropiedadRepository:

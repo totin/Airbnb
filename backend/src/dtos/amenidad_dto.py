@@ -1,13 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
-class CreateAmenidadDTO(BaseModel):
+class AmenidadCreateDTO(BaseModel):
     nombre: str
 
 
-class ResponseAmenidadDTO(BaseModel):
+class AmenidadResponseDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     nombre: str
-
-    class Config:
-        from_attributes = True

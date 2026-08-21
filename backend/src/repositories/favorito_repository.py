@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from models.favorito import Favorito
-from models.propiedad import Propiedad
+from src.db.models.favorito import Favorito
+from src.db.models.propiedad import Propiedad
 
 
 class FavoritoRepository:

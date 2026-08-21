@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from models.amenidad import Amenidad
-from models.propiedad import Propiedad
+from src.db.models.amenidad import Amenidad
+from src.db.models.propiedad import Propiedad
 
 
 class AmenidadRepository:
