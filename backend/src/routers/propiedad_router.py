@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from src.db.connection import get_db
 from src.dtos.propiedad_dto import PropiedadCreateDTO, PropiedadResponseDTO, AsociarAmenidadesDTO
-from src.services.propiedad_service import PropiedadService
-from src.services.propiedad_amenidad_service import PropiedadAmenidadService
+from src.services.prop_amen_service import PropiedadAmenidadService
+from src.services.prop_amen_service import PropiedadAmenidadService
 
 router = APIRouter(prefix="/propiedades", tags=["Propiedades"])
 

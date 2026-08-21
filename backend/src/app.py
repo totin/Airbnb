@@ -1,49 +1,52 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Importar el manejador de errores de tu carpeta utils
-from src.middlewares.error_middleware import app_error_handler
-from src.utils.errors import AppError
+# Importaciones de la base de datos
+from src.db.connection import Base, engine
+import src.db.models  # Necesario para que SQLAlchemy registre todas las tablas
 
-# Importar los routers de TU proyecto
+# Importaciones de los routers
 from src.routers import (
     usuario_router,
+    anfitrion_router,
+    amenidad_router,
     propiedad_router,
+    propiedad_amenidad_router,
     reserva_router,
     resena_router,
-    amenidad_router,
     favorito_router,
 )
 
-app = FastAPI(title="Airbnb Clone API", version="1.0.0")
+# 1. Crear las tablas en PostgreSQL (pgAdmin) si aún no existen
+Base.metadata.create_all(bind=engine)
 
-# Manejador de excepciones global
-app.add_exception_handler(AppError, app_error_handler)
+# 2. Inicializar la aplicación FastAPI
+app = FastAPI(
+    title="API Airbnb Clone",
+    description="Backend para plataforma de reservas y propiedades",
+    version="1.0.0"
+)
 
-# Habilitar CORS para que el frontend pueda conectarse sin bloqueos
-origins = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
+# 3. Configurar CORS para permitir comunicación con el Frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Permite peticiones desde cualquier origen en desarrollo
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Registrar los routers de Airbnb
-app.include_router(usuario_router.router, prefix="/api/usuarios", tags=["Usuarios"])
-app.include_router(propiedad_router.router, prefix="/api/propiedades", tags=["Propiedades"])
-app.include_router(reserva_router.router, prefix="/api/reservas", tags=["Reservas"])
-app.include_router(resena_router.router, prefix="/api/resenas", tags=["Reseñas"])
-app.include_router(amenidad_router.router, prefix="/api/amenidades", tags=["Amenidades"])
-app.include_router(favorito_router.router, prefix="/api/favoritos", tags=["Favoritos"])
+# 4. Registrar los endpoints
+app.include_router(usuario_router)
+app.include_router(anfitrion_router)
+app.include_router(amenidad_router)
+app.include_router(propiedad_router)
+app.include_router(propiedad_amenidad_router)
+app.include_router(reserva_router)
+app.include_router(resena_router)
+app.include_router(favorito_router)
 
 
-@app.get("/health", tags=["Health"])
-def health():
-    return {"status": "ok"}
+@app.get("/")
+def root():
+    return {"message": "API de Airbnb Clone funcionando correctamente"}

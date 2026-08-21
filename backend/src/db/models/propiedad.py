@@ -11,4 +11,4 @@ class Propiedad(Base):
     precio_noche = Column(Float, nullable=False)
     capacidad = Column(Integer, nullable=False)
 
-    anfitrion_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    anfitrion_id = Column(Integer, ForeignKey("usuario.id"), nullable=False)

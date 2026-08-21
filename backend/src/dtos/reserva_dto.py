@@ -1,5 +1,5 @@
 from datetime import date
-from Decimal import Decimal
+from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 from src.db.models.reserva import EstadoReserva
 
