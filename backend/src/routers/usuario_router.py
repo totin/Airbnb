@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
 from src.db.models.usuario import Usuario
-from src.dtos.usuario_dto import UsuarioCreateDTO, UsuarioResponseDTO
+from src.dtos.usuario_dto import CreateUsuarioDTO, UsuarioResponseDTO
 from src.middlewares.auth_middleware import get_current_user
 from src.services.usuario_service import UsuarioService
 
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
     summary="Registrar un nuevo usuario"
 )
 def registrar_usuario(
-    usuario_data: UsuarioCreateDTO,
+    usuario_data: CreateUsuarioDTO,
     db: Session = Depends(get_db)
 ):
     """HU1: Permite a un nuevo usuario registrarse en la plataforma."""
