@@ -19,15 +19,25 @@ export function PropertyCard({
 }) {
   return (
     <article className="surface-card group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5">
-      <div className="relative flex h-36 items-end bg-secondary p-4">
-        <span className="font-display text-5xl text-primary/25">{propiedad.ciudad.slice(0, 2)}</span>
+      {/* Cabecera con Imagen / Fallback */}
+      <div className="relative flex h-48 items-end bg-secondary p-4 overflow-hidden">
+        {propiedad.imagen_url ? (
+          <img
+            src={propiedad.imagen_url}
+            alt={propiedad.titulo}
+            className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
+          />
+        ) : (
+          <span className="font-display text-5xl text-primary/25">{propiedad.ciudad.slice(0, 2)}</span>
+        )}
+
         {onToggleFavorito && (
           <Button
             size="icon"
             variant="secondary"
             aria-label={esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}
             onClick={() => onToggleFavorito(propiedad.id)}
-            className="absolute right-3 top-3 rounded-full"
+            className="absolute right-3 top-3 rounded-full z-10 bg-background/80 backdrop-blur-sm hover:bg-background"
           >
             <Heart className={cn("size-4", esFavorito && "fill-primary text-primary")} />
           </Button>
@@ -36,7 +46,7 @@ export function PropertyCard({
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-lg leading-tight">
+          <h3 className="text-lg leading-tight font-medium">
             <Link to="/propiedades/$id" params={{ id: propiedad.id }} className="hover:text-primary">
               {propiedad.titulo}
             </Link>
