@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+import os
+import shutil
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 # Importaciones de la base de datos
 from src.db.connection import Base, engine
@@ -27,7 +30,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# 3. Configurar CORS para permitir comunicación con el Frontend
+# 3. Crear la carpeta para imágenes y servirla como archivos estáticos
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# 4. Configurar CORS para permitir comunicación con el Frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Permite peticiones desde cualquier origen en desarrollo
@@ -36,7 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 4. Registrar los endpoints
+# 5. Registrar los endpoints
 app.include_router(usuario_router)
 app.include_router(anfitrion_router)
 app.include_router(amenidad_router)
@@ -50,3 +57,13 @@ app.include_router(favorito_router)
 @app.get("/")
 def root():
     return {"message": "API de Airbnb Clone funcionando correctamente"}
+
+
+# 6. Endpoint para recibir y guardar las imágenes del Drag & Drop
+@app.post("/upload-imagen")
+async def subir_imagen(file: UploadFile = File(...)):
+    filepath = f"uploads/{file.filename}"
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    return {"url": f"http://127.0.0.1:8000/uploads/{file.filename}"}
