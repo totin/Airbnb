@@ -12,7 +12,7 @@ class Reserva(Base):
     __tablename__ = "reserva"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    propiedad_id = Column(Integer, ForeignKey("propiedad.id", ondelete="CASCADE"), nullable=False)
+    propiedades_id = Column(Integer, ForeignKey("propiedad.id", ondelete="CASCADE"), nullable=False)
     huesped_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
     fecha_inicio = Column(Date, nullable=False)
     fecha_fin = Column(Date, nullable=False)

@@ -1,9 +1,9 @@
 from typing import Optional
-from backend.src.db.models import propiedad
+
 from sqlalchemy.orm import Session
 from src.repositories.propiedad_repository import PropiedadRepository
 from src.repositories.usuario_repository import UsuarioRepository
-from src.db.models.propiedad import Propiedad  # Tu modelo ORM SQLAlchemy
+from src.db.models.propiedad import Propiedad # Tu modelo ORM SQLAlchemy
 
 
 class PropiedadService:
