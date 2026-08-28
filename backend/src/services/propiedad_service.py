@@ -1,4 +1,5 @@
 from typing import Optional
+from backend.src.db.models import propiedad
 from sqlalchemy.orm import Session
 from src.repositories.propiedad_repository import PropiedadRepository
 from src.repositories.usuario_repository import UsuarioRepository
@@ -75,3 +76,14 @@ class PropiedadService:
             raise ValueError(f"No existe ningún usuario con ID {anfitrion_id}.")
             
         return self.propiedad_repo.get_by_anfitrion_id(anfitrion_id)
+
+    def eliminar_propiedad(self, propiedad_id: int, anfitrion_id: int) -> None:
+        propiedad = self.propiedad_repo.obtener_por_id(propiedad_id)
+
+        if not propiedad:
+            raise ValueError(f"No se encontró la propiedad con ID {propiedad_id}.")
+
+        if propiedad.anfitrion_id != anfitrion_id:
+            raise ValueError("No tienes permiso para eliminar esta propiedad.")
+
+        self.propiedad_repo.eliminar(propiedad)
