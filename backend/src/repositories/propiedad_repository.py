@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, not_, exists
+from sqlalchemy import and_, not_, exists, func
 from src.db.models.propiedad import Propiedad
 from src.db.models.reserva import Reserva
 
@@ -38,8 +38,8 @@ class PropiedadRepository:
     ) -> list[Propiedad]:
 
         query = self.db.query(Propiedad).filter(
-            Propiedad.ciudad == ciudad
-        )
+            func.unaccent(Propiedad.ciudad).ilike(func.unaccent(f"%{ciudad}%"))
+    )
 
         if huespedes is not None:
             query = query.filter(
@@ -63,8 +63,8 @@ class PropiedadRepository:
     ) -> list[Propiedad]:
 
         query = self.db.query(Propiedad).filter(
-            Propiedad.ciudad == ciudad
-        )
+            func.unaccent(Propiedad.ciudad).ilike(func.unaccent(f"%{ciudad}%"))
+)
 
         if huespedes is not None:
             query = query.filter(
