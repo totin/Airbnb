@@ -37,9 +37,12 @@ class PropiedadRepository:
         precio_max: float | None = None
     ) -> list[Propiedad]:
 
-        query = self.db.query(Propiedad).filter(
-            func.unaccent(Propiedad.ciudad).ilike(func.unaccent(f"%{ciudad}%"))
-    )
+        query = self.db.query(Propiedad)
+
+        if ciudad:
+            query = query.filter(
+                func.unaccent(Propiedad.ciudad).ilike(func.unaccent(f"%{ciudad}%"))
+            )
 
         if huespedes is not None:
             query = query.filter(
@@ -62,9 +65,12 @@ class PropiedadRepository:
         precio_max: float | None = None
     ) -> list[Propiedad]:
 
-        query = self.db.query(Propiedad).filter(
-            func.unaccent(Propiedad.ciudad).ilike(func.unaccent(f"%{ciudad}%"))
-)
+        query = self.db.query(Propiedad)
+
+        if ciudad:
+            query = query.filter(
+                func.unaccent(Propiedad.ciudad).ilike(func.unaccent(f"%{ciudad}%"))
+            )
 
         if huespedes is not None:
             query = query.filter(
