@@ -64,9 +64,9 @@ class PropiedadService:
         capacidad_minima: Optional[int] = None
     ) -> list[Propiedad]:
         """Busca propiedades aplicando filtros opcionales (por ciudad o cantidad de huéspedes)."""
-        return self.propiedad_repo.buscar(
+        return self.propiedad_repo.buscar_por_ciudad(
             ciudad=ciudad, 
-            capacidad_minima=capacidad_minima
+            huespedes=capacidad_minima
         )
 
     def listar_por_anfitrion(self, anfitrion_id: int) -> list[Propiedad]:
