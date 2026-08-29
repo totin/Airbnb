@@ -44,8 +44,8 @@ function enriquecerPropiedad(p: Propiedad): PropiedadConDatos {
     anfitrion: db.usuarios.find((u) => u.id === p.anfitrion_id),
     cantidad_resenas: rs.length,
     promedio_puntaje: rs.length ? rs.reduce((a, r) => a + r.puntaje, 0) / rs.length : null,
-    amenidades_nombres: p.amenidades.map(
-      (id) => db.amenidades.find((a) => a.id === id)?.nombre ?? id,
+    amenidades_nombres: (p.amenidades ?? []).map(
+  (id) => db.amenidades.find((a) => a.id === id)?.nombre ?? id,
     ),
   };
 }
@@ -101,26 +101,13 @@ export async function crearUsuario(input: {
 
 /** HU3 — Búsqueda por ciudad, fechas, capacidad, precio y amenidades. */
 export async function buscarPropiedades(f: FiltrosBusqueda): Promise<PropiedadConDatos[]> {
-  // GET /propiedades?ciudad=X&desde=YYYY-MM-DD&hasta=YYYY-MM-DD&huespedes=N
-  //     &precio_max=N&amenidades=wifi,pileta
-  // const qs = new URLSearchParams(...);
-  // return fetch(`${API_URL}/propiedades?${qs}`).then((r) => r.json());
-  await delay();
-  return db.propiedades
-    .filter((p) => (f.ciudad ? p.ciudad.toLowerCase().includes(f.ciudad.toLowerCase()) : true))
-    .filter((p) => (f.huespedes ? p.capacidad >= f.huespedes : true))
-    .filter((p) => (f.precio_max ? p.precio_noche <= f.precio_max : true))
-    .filter((p) => (f.amenidades?.length ? f.amenidades.every((a) => p.amenidades.includes(a)) : true))
-    .filter((p) => {
-      if (!f.desde || !f.hasta) return true;
-      return !db.reservas.some(
-        (r) =>
-          r.propiedad_id === p.id &&
-          r.estado === "confirmada" &&
-          seSolapan(f.desde!, f.hasta!, r.fecha_inicio, r.fecha_fin),
-      );
-    })
-    .map(enriquecerPropiedad);
+  const qs = new URLSearchParams();
+  if (f.ciudad) qs.set("ciudad", f.ciudad);
+  if (f.huespedes) qs.set("capacidad_minima", String(f.huespedes));
+
+  const res = await fetch(`${API_URL}/propiedades?${qs}`);
+  const propiedades: Propiedad[] = await res.json();
+  return propiedades.map(enriquecerPropiedad);
 }
 
 export async function getPropiedad(id: string): Promise<PropiedadConDatos | undefined> {
