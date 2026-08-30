@@ -1,5 +1,5 @@
-from src.models.saldo_horas import SaldoHoras
-from src.models.transaccion_horas import TransaccionHoras, TipoTransaccionHoras
+from src.db.models.saldo_horas import SaldoHoras
+from src.db.models.transaccion_horas import TransaccionHoras, TipoTransaccionHoras
 
 
 class HorasService:
