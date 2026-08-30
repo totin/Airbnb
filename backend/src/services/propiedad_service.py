@@ -1,3 +1,4 @@
+from typing import Optional
 from src.models.propiedad import Propiedad
 from src.models.propiedad_imagen import PropiedadImagen
 
@@ -30,10 +31,25 @@ class PropiedadService:
         self.db.refresh(propiedad)
         return propiedad
 
-    def actualizar_propiedad(self, propiedad_id: int, anfitrion_id: int, datos):
+    def obtener_por_id(self, propiedad_id: int) -> Propiedad:
         propiedad = self.db.query(Propiedad).filter(Propiedad.id == propiedad_id).first()
         if not propiedad:
             raise ValueError(f"No existe la propiedad con ID {propiedad_id}")
+        return propiedad
+
+    def buscar_propiedades(self, ciudad: Optional[str] = None, capacidad_minima: Optional[int] = None):
+        query = self.db.query(Propiedad)
+        if ciudad:
+            query = query.filter(Propiedad.ciudad.ilike(f"%{ciudad}%"))
+        if capacidad_minima:
+            query = query.filter(Propiedad.capacidad >= capacidad_minima)
+        return query.all()
+
+    def listar_por_anfitrion(self, anfitrion_id: int):
+        return self.db.query(Propiedad).filter(Propiedad.anfitrion_id == anfitrion_id).all()
+
+    def actualizar_propiedad(self, propiedad_id: int, anfitrion_id: int, datos):
+        propiedad = self.obtener_por_id(propiedad_id)
         if propiedad.anfitrion_id != anfitrion_id:
             raise ValueError("No tenés permiso para editar esta propiedad")
 
@@ -46,9 +62,7 @@ class PropiedadService:
         return propiedad
 
     def agregar_imagenes(self, propiedad_id: int, anfitrion_id: int, urls: list[str]):
-        propiedad = self.db.query(Propiedad).filter(Propiedad.id == propiedad_id).first()
-        if not propiedad:
-            raise ValueError(f"No existe la propiedad con ID {propiedad_id}")
+        propiedad = self.obtener_por_id(propiedad_id)
         if propiedad.anfitrion_id != anfitrion_id:
             raise ValueError("No tenés permiso para modificar esta propiedad")
 
@@ -65,9 +79,7 @@ class PropiedadService:
         return propiedad
 
     def eliminar_imagen(self, propiedad_id: int, imagen_id: int, anfitrion_id: int):
-        propiedad = self.db.query(Propiedad).filter(Propiedad.id == propiedad_id).first()
-        if not propiedad:
-            raise ValueError(f"No existe la propiedad con ID {propiedad_id}")
+        propiedad = self.obtener_por_id(propiedad_id)
         if propiedad.anfitrion_id != anfitrion_id:
             raise ValueError("No tenés permiso para modificar esta propiedad")
 
@@ -79,4 +91,12 @@ class PropiedadService:
             raise ValueError(f"No existe la imagen con ID {imagen_id} en esta propiedad")
 
         self.db.delete(imagen)
+        self.db.commit()
+
+    def eliminar_propiedad(self, propiedad_id: int, anfitrion_id: int):
+        propiedad = self.obtener_por_id(propiedad_id)
+        if propiedad.anfitrion_id != anfitrion_id:
+            raise ValueError("No tenés permiso para eliminar esta propiedad")
+
+        self.db.delete(propiedad)
         self.db.commit()
