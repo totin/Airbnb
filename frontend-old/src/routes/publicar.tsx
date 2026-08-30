@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { money } from "@/components/property-card";
-import { ImageDropzone } from "@/components/image-dropzone";
 import { crearPropiedad, getAmenidades, getPropiedadesDeAnfitrion } from "@/lib/api";
 import { useSesion } from "@/lib/auth";
 
@@ -101,7 +100,6 @@ function FormularioPublicacion({ usuarioId }: { usuarioId: string }) {
     capacidad: "",
   });
   const [sel, setSel] = useState<string[]>([]);
-  const [imagenes, setImagenes] = useState<string[]>([]);
 
   const crear = useMutation({
     // POST /propiedades
@@ -114,13 +112,11 @@ function FormularioPublicacion({ usuarioId }: { usuarioId: string }) {
         capacidad: Number(form.capacidad),
         anfitrion_id: usuarioId,
         amenidades: sel,
-        imagenes,
       }),
     onSuccess: () => {
       toast.success("Propiedad publicada");
       setForm({ titulo: "", direccion: "", ciudad: "", precio_noche: "", capacidad: "" });
       setSel([]);
-      setImagenes([]);
       qc.invalidateQueries({ queryKey: ["propiedades-anfitrion"] });
       qc.invalidateQueries({ queryKey: ["propiedades"] });
     },
@@ -159,10 +155,6 @@ function FormularioPublicacion({ usuarioId }: { usuarioId: string }) {
               />
             </div>
           ))}
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs uppercase text-muted-foreground">Fotos</Label>
-          <ImageDropzone imagenes={imagenes} onChange={setImagenes} />
         </div>
         <div className="space-y-2">
           <Label className="text-xs uppercase text-muted-foreground">Amenidades</Label>

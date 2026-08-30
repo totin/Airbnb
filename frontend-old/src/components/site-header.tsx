@@ -12,7 +12,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { useSesion } from "@/lib/auth";
-import { HorasBadge } from "@/components/horas-badge";
 
 const navPublico = [
   { to: "/", label: "Buscar", icon: Home },
@@ -68,7 +67,6 @@ export function SiteHeader() {
                 {usuario.nombre} ·{" "}
                 <span className="text-foreground">{esAnfitrion ? "Anfitrión" : "Huésped"}</span>
               </span>
-              <HorasBadge />
               <Button
                 size="sm"
                 variant="outline"

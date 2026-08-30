@@ -18,9 +18,7 @@ import {
   getResenasDePropiedad,
   noches,
 } from "@/lib/api";
-import { useSesion } from "@/lib/auth";
-import { formatHoras, horasGanadas, horasParaPagar, HORAS_POR_DOLAR } from "@/lib/millas";
-import { cn } from "@/lib/utils";
+import { useUsuarioId } from "@/lib/auth";
 
 const MapaPropiedad = lazy(() =>
   import("@/components/mapa-propiedad").then((m) => ({ default: m.MapaPropiedad })),
@@ -47,9 +45,7 @@ export const Route = createFileRoute("/propiedades/$id")({
 });
 
 function DetallePropiedad() {
-  const { usuario, horas, sumarHoras, gastarHoras } = useSesion();
-  const usuarioId = usuario?.id ?? "";
-  const [medioPago, setMedioPago] = useState<"dinero" | "horas">("dinero");
+  const usuarioId = useUsuarioId();
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7));
@@ -75,9 +71,6 @@ function DetallePropiedad() {
   const reservar = useMutation({
     mutationFn: () => {
       if (!usuarioId) throw new Error("Iniciá sesión para reservar");
-      // POST /reservas { ..., medio_pago }
-      if (medioPago === "horas" && !gastarHoras(horasParaPagar(totalDinero)))
-        throw new Error("No tenés horas suficientes para pagar esta estadía");
       return crearReserva({
         propiedad_id: id,
         huesped_id: usuarioId,
@@ -86,12 +79,7 @@ function DetallePropiedad() {
       });
     },
     onSuccess: () => {
-      if (medioPago === "dinero") {
-        sumarHoras(horasGanadas(totalDinero));
-        toast.success(`Reserva pendiente · ganaste ${formatHoras(horasGanadas(totalDinero))} horas`);
-      } else {
-        toast.success(`Reserva pendiente · canjeaste ${formatHoras(horasParaPagar(totalDinero))} horas`);
-      }
+      toast.success("Reserva creada en estado pendiente");
       qc.invalidateQueries({ queryKey: ["reservas"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -100,10 +88,6 @@ function DetallePropiedad() {
   if (!prop) return <p className="p-10 text-center text-muted-foreground">Cargando…</p>;
 
   const cantNoches = desde && hasta ? noches(desde, hasta) : 0;
-  const totalDinero = prop.precio_noche * cantNoches;
-  const costoHoras = horasParaPagar(totalDinero);
-  const ganaHoras = horasGanadas(totalDinero);
-  const alcanzan = cantNoches > 0 && horas >= costoHoras;
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-20 pt-8">
@@ -257,71 +241,14 @@ function DetallePropiedad() {
             <span className="text-muted-foreground">
               {cantNoches} noche{cantNoches === 1 ? "" : "s"}
             </span>
-            <span className="font-semibold">{money(totalDinero)}</span>
+            <span className="font-semibold">{money(prop.precio_noche * cantNoches)}</span>
           </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs uppercase text-muted-foreground">¿Cómo querés pagar?</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setMedioPago("dinero")}
-                className={cn(
-                  "rounded-lg border p-3 text-left transition-colors",
-                  medioPago === "dinero" ? "border-primary bg-primary/5" : "border-border",
-                )}
-              >
-                <span className="block text-xs font-medium uppercase text-muted-foreground">
-                  Con dinero
-                </span>
-                <span className="block text-sm font-semibold">{money(totalDinero)}</span>
-                <span className="mt-1 block text-xs font-semibold text-success">
-                  + {formatHoras(ganaHoras)} hs que ganás
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMedioPago("horas")}
-                className={cn(
-                  "rounded-lg border p-3 text-left transition-colors",
-                  medioPago === "horas" ? "border-primary bg-primary/5" : "border-border",
-                )}
-              >
-                <span className="block text-xs font-medium uppercase text-muted-foreground">
-                  Con horas
-                </span>
-                <span
-                  className={cn(
-                    "block text-sm font-semibold",
-                    alcanzan ? "text-destructive" : "text-destructive/45",
-                  )}
-                >
-                  {formatHoras(costoHoras)} hs
-                </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  {cantNoches === 0
-                    ? "Elegí las fechas"
-                    : alcanzan
-                      ? "Te alcanza"
-                      : `Te faltan ${formatHoras(costoHoras - horas)} hs`}
-                </span>
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Ganás {HORAS_POR_DOLAR} horas por cada unidad gastada · 100 horas = 1 de descuento.
-              Tu saldo: {formatHoras(horas)} hs.
-            </p>
-          </div>
-
           <Button
             className="w-full"
-            disabled={
-              !desde || !hasta || reservar.isPending || (medioPago === "horas" && !alcanzan)
-            }
+            disabled={!desde || !hasta || reservar.isPending}
             onClick={() => reservar.mutate()}
           >
-            {medioPago === "horas" ? `Reservar con ${formatHoras(costoHoras)} hs` : "Reservar"}
+            Reservar
           </Button>
           <p className="text-xs text-muted-foreground">
             La reserva queda pendiente hasta que el anfitrión la confirme.

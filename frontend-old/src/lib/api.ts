@@ -44,8 +44,8 @@ function enriquecerPropiedad(p: Propiedad): PropiedadConDatos {
     anfitrion: db.usuarios.find((u) => u.id === p.anfitrion_id),
     cantidad_resenas: rs.length,
     promedio_puntaje: rs.length ? rs.reduce((a, r) => a + r.puntaje, 0) / rs.length : null,
-    amenidades_nombres: p.amenidades.map(
-      (id) => db.amenidades.find((a) => a.id === id)?.nombre ?? id,
+    amenidades_nombres: (p.amenidades ?? []).map(
+  (id) => db.amenidades.find((a) => a.id === id)?.nombre ?? id,
     ),
   };
 }
@@ -101,26 +101,13 @@ export async function crearUsuario(input: {
 
 /** HU3 — Búsqueda por ciudad, fechas, capacidad, precio y amenidades. */
 export async function buscarPropiedades(f: FiltrosBusqueda): Promise<PropiedadConDatos[]> {
-  // GET /propiedades?ciudad=X&desde=YYYY-MM-DD&hasta=YYYY-MM-DD&huespedes=N
-  //     &precio_max=N&amenidades=wifi,pileta
-  // const qs = new URLSearchParams(...);
-  // return fetch(`${API_URL}/propiedades?${qs}`).then((r) => r.json());
-  await delay();
-  return db.propiedades
-    .filter((p) => (f.ciudad ? p.ciudad.toLowerCase().includes(f.ciudad.toLowerCase()) : true))
-    .filter((p) => (f.huespedes ? p.capacidad >= f.huespedes : true))
-    .filter((p) => (f.precio_max ? p.precio_noche <= f.precio_max : true))
-    .filter((p) => (f.amenidades?.length ? f.amenidades.every((a) => p.amenidades.includes(a)) : true))
-    .filter((p) => {
-      if (!f.desde || !f.hasta) return true;
-      return !db.reservas.some(
-        (r) =>
-          r.propiedad_id === p.id &&
-          r.estado === "confirmada" &&
-          seSolapan(f.desde!, f.hasta!, r.fecha_inicio, r.fecha_fin),
-      );
-    })
-    .map(enriquecerPropiedad);
+  const qs = new URLSearchParams();
+  if (f.ciudad) qs.set("ciudad", f.ciudad);
+  if (f.huespedes) qs.set("capacidad_minima", String(f.huespedes));
+
+  const res = await fetch(`${API_URL}/propiedades?${qs}`);
+  const propiedades: Propiedad[] = await res.json();
+  return propiedades.map(enriquecerPropiedad);
 }
 
 export async function getPropiedad(id: string): Promise<PropiedadConDatos | undefined> {
@@ -140,7 +127,6 @@ export async function crearPropiedad(input: {
   capacidad: number;
   anfitrion_id: string;
   amenidades: string[];
-  imagenes?: string[];
 }): Promise<Propiedad> {
   // POST /propiedades -> 201
   // return fetch(`${API_URL}/propiedades`, { method: "POST", ... }).then((r) => r.json());
@@ -152,45 +138,6 @@ export async function crearPropiedad(input: {
   const nueva: Propiedad = { id: uid(), ...input };
   db.propiedades.push(nueva);
   return nueva;
-}
-
-/** HU2 — Editar una propiedad (solo el anfitrión dueño). */
-export async function actualizarPropiedad(
-  id: string,
-  anfitrionId: string,
-  cambios: Partial<Omit<Propiedad, "id" | "anfitrion_id">>,
-): Promise<Propiedad> {
-  // PUT /propiedades/{id}
-  // return fetch(`${API_URL}/propiedades/${id}`, { method: "PUT", ... }).then((r) => r.json());
-  await delay();
-  const p = db.propiedades.find((x) => x.id === id);
-  if (!p) throw new Error("La propiedad no existe");
-  if (p.anfitrion_id !== anfitrionId) throw new Error("Solo el anfitrión dueño puede editarla");
-  if (cambios.precio_noche !== undefined && cambios.precio_noche <= 0)
-    throw new Error("El precio por noche debe ser mayor a 0");
-  if (cambios.capacidad !== undefined && cambios.capacidad <= 0)
-    throw new Error("La capacidad debe ser mayor a 0");
-  Object.assign(p, cambios);
-  return p;
-}
-
-/** HU2 — Borrar una propiedad (solo el anfitrión dueño). */
-export async function eliminarPropiedad(id: string, anfitrionId: string): Promise<void> {
-  // DELETE /propiedades/{id}
-  // await fetch(`${API_URL}/propiedades/${id}`, { method: "DELETE" });
-  await delay();
-  const i = db.propiedades.findIndex((x) => x.id === id);
-  if (i === -1) throw new Error("La propiedad no existe");
-  if (db.propiedades[i]!.anfitrion_id !== anfitrionId)
-    throw new Error("Solo el anfitrión dueño puede borrarla");
-  const activas = db.reservas.some(
-    (r) => r.propiedad_id === id && (r.estado === "pendiente" || r.estado === "confirmada"),
-  );
-  if (activas) throw new Error("No podés borrar una propiedad con reservas activas");
-  db.propiedades.splice(i, 1);
-  for (let k = db.favoritos.length - 1; k >= 0; k--) {
-    if (db.favoritos[k]!.propiedad_id === id) db.favoritos.splice(k, 1);
-  }
 }
 
 /** HU2 — Propiedades de un anfitrión. */

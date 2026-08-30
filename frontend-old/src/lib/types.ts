@@ -14,7 +14,6 @@ export interface Amenidad {
   id: string;
   nombre: string;
 }
-
 export interface Propiedad {
   id: string;
   titulo: string;
@@ -23,11 +22,12 @@ export interface Propiedad {
   precio_noche: number;
   capacidad: number;
   anfitrion_id: string;
-  imagen?: string;
-  imagenes?: string[]; // data URLs / URLs de fotos de la propiedad
+  imagen_url?: string | null; // <--- Agregado para coincidir con la DB y API
+  imagen?: string;           // Se mantiene por compatibilidad si lo usás en otro lado
   lat?: number;
   lng?: number;
-  amenidades: string[]; // ids de amenidad (N a M propiedad_amenidades)
+  amenidades: string[];
+        // ids de amenidad (N a M propiedad_amenidades)
 }
 
 export interface Reserva {

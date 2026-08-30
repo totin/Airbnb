@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usuarios } from "./mock-data";
-import { HORAS_INICIALES } from "./millas";
 import type { Usuario } from "./types";
 
 /**
@@ -22,15 +21,7 @@ interface Sesion {
   logout: () => void;
   /** PATCH /usuarios/{id} { es_anfitrion: true } */
   activarAnfitrion: () => void;
-  /** Saldo del programa de fidelidad. GET /usuarios/{id}/horas */
-  horas: number;
-  /** POST /usuarios/{id}/horas/acreditar */
-  sumarHoras: (cantidad: number) => void;
-  /** Canje de horas al pagar una reserva. Devuelve false si no alcanza. */
-  gastarHoras: (cantidad: number) => boolean;
 }
-
-const horasKey = (id: string) => `estadia.horas.${id}`;
 
 const STORAGE_KEY = "estadia.sesion";
 const SesionCtx = createContext<Sesion | null>(null);
@@ -38,17 +29,11 @@ const SesionCtx = createContext<Sesion | null>(null);
 export function SesionProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [cargando, setCargando] = useState(true);
-  const [horas, setHoras] = useState(0);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const u = JSON.parse(raw) as Usuario;
-        setUsuario(u);
-        const saldo = localStorage.getItem(horasKey(u.id));
-        setHoras(saldo === null ? HORAS_INICIALES : Number(saldo));
-      }
+      if (raw) setUsuario(JSON.parse(raw) as Usuario);
     } catch {
       /* noop */
     }
@@ -61,15 +46,12 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     if (!u) throw new Error("No existe una cuenta con ese email");
     setUsuario(u);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-    const saldo = localStorage.getItem(horasKey(u.id));
-    setHoras(saldo === null ? HORAS_INICIALES : Number(saldo));
     return u;
   }, []);
 
   const logout = useCallback(() => {
     // POST /auth/logout
     setUsuario(null);
-    setHoras(0);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
@@ -85,29 +67,6 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const guardarHoras = useCallback(
-    (nuevo: number) => {
-      setHoras(nuevo);
-      if (usuario) localStorage.setItem(horasKey(usuario.id), String(nuevo));
-    },
-    [usuario],
-  );
-
-  const sumarHoras = useCallback(
-    (cantidad: number) => guardarHoras(horas + Math.max(0, Math.round(cantidad))),
-    [guardarHoras, horas],
-  );
-
-  const gastarHoras = useCallback(
-    (cantidad: number) => {
-      const costo = Math.max(0, Math.round(cantidad));
-      if (costo > horas) return false;
-      guardarHoras(horas - costo);
-      return true;
-    },
-    [guardarHoras, horas],
-  );
-
   const value = useMemo<Sesion>(
     () => ({
       usuario,
@@ -117,11 +76,8 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       activarAnfitrion,
-      horas,
-      sumarHoras,
-      gastarHoras,
     }),
-    [usuario, cargando, login, logout, activarAnfitrion, horas, sumarHoras, gastarHoras],
+    [usuario, cargando, login, logout, activarAnfitrion],
   );
 
   return <SesionCtx.Provider value={value}>{children}</SesionCtx.Provider>;
