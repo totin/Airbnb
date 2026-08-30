@@ -13,12 +13,12 @@ class Reserva(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     propiedad_id = Column(Integer, ForeignKey("propiedad.id", ondelete="CASCADE"), nullable=False)
-    huesped_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
+    huesped_id = Column(Integer, ForeignKey("usuario.id", ondelete="CASCADE"), nullable=False)
     fecha_inicio = Column(Date, nullable=False)
     fecha_fin = Column(Date, nullable=False)
     estado = Column(
-        Enum(EstadoReserva), 
-        nullable=False, 
+        Enum(EstadoReserva),
+        nullable=False,
         default=EstadoReserva.PENDIENTE
     )
     total = Column(Numeric(10, 2), nullable=False)
