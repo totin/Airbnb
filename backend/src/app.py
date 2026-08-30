@@ -18,6 +18,7 @@ from src.routers import (
     reserva_router,
     resena_router,
     favorito_router,
+    horas_router,
 )
 
 # 1. Crear las tablas en PostgreSQL (pgAdmin) si aún no existen
@@ -52,6 +53,7 @@ app.include_router(propiedad_amenidad_router)
 app.include_router(reserva_router)
 app.include_router(resena_router)
 app.include_router(favorito_router)
+app.include_router(horas_router)
 
 
 @app.get("/")
