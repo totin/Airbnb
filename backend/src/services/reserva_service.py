@@ -1,5 +1,5 @@
-from src.models.reserva import Reserva, EstadoReserva, MetodoPago
-from src.models.transaccion_horas import TipoTransaccionHoras
+from src.db.models.reserva import Reserva, EstadoReserva, MetodoPago
+from src.db.models.transaccion_horas import TipoTransaccionHoras
 from src.services.horas_service import HorasService
 
 

@@ -1,6 +1,6 @@
 from typing import Optional
-from src.models.propiedad import Propiedad
-from src.models.propiedad_imagen import PropiedadImagen
+from src.db.models.propiedad import Propiedad
+from src.db.models.propiedad_imagen import PropiedadImagen
 
 
 class PropiedadService:
