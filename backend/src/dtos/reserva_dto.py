@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 from pydantic import BaseModel
-from src.models.reserva import MetodoPago
+from src.db.models.reserva import MetodoPago
 
 
 class ReservaCreateDTO(BaseModel):
