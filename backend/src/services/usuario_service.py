@@ -1,11 +1,13 @@
 from sqlalchemy.orm import Session
 from src.repositories.usuario_repository import UsuarioRepository
+from src.services.horas_service import HorasService
 from src.db.models.usuario import Usuario  # Tu modelo ORM SQLAlchemy
 
 
 class UsuarioService:
 
     def __init__(self, db: Session):
+        self.db = db
         self.usuario_repo = UsuarioRepository(db)
 
     def crear_usuario(self, email: str, nombre: str, es_anfitrion: bool = False) -> Usuario:
@@ -16,11 +18,16 @@ class UsuarioService:
             raise ValueError(f"El email '{email}' ya se encuentra registrado.")
 
         # Guardar en base de datos mediante el repositorio
-        return self.usuario_repo.create(
+        usuario = self.usuario_repo.create(
             email=email,
             nombre=nombre,
             es_anfitrion=es_anfitrion
         )
+
+        # Crear saldo de horas inicial en 0 para el usuario nuevo
+        HorasService(self.db).crear_saldo_inicial(usuario.id)
+
+        return usuario
 
     def obtener_por_id(self, usuario_id: int) -> Usuario:
         """Obtiene un usuario por su ID o lanza error si no existe."""
