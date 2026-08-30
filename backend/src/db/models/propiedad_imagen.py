@@ -7,6 +7,6 @@ class PropiedadImagen(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     propiedad_id = Column(Integer, ForeignKey("propiedad.id", ondelete="CASCADE"), nullable=False)
-    url = Column(Text, nullable=False)  # guarda el base64 data URL completo
+    url = Column(Text, nullable=False)
     orden = Column(Integer, default=0, nullable=False)
     es_portada = Column(Boolean, default=False, nullable=False)
