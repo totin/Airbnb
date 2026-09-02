@@ -47,7 +47,7 @@ export const Route = createFileRoute("/propiedades/$id")({
 });
 
 function DetallePropiedad() {
-  const { usuario, horas, sumarHoras, gastarHoras } = useSesion();
+  const { usuario, horas } = useSesion();
   const usuarioId = usuario?.id ?? "";
   const [medioPago, setMedioPago] = useState<"dinero" | "horas">("dinero");
   const { id } = Route.useParams();
@@ -75,19 +75,16 @@ function DetallePropiedad() {
   const reservar = useMutation({
     mutationFn: () => {
       if (!usuarioId) throw new Error("Iniciá sesión para reservar");
-      // POST /reservas { ..., medio_pago }
-      if (medioPago === "horas" && !gastarHoras(horasParaPagar(totalDinero)))
-        throw new Error("No tenés horas suficientes para pagar esta estadía");
       return crearReserva({
         propiedad_id: id,
         huesped_id: usuarioId,
         fecha_inicio: desde,
         fecha_fin: hasta,
+        metodo_pago: medioPago,
       });
     },
     onSuccess: () => {
       if (medioPago === "dinero") {
-        sumarHoras(horasGanadas(totalDinero));
         toast.success(`Reserva pendiente · ganaste ${formatHoras(horasGanadas(totalDinero))} horas`);
       } else {
         toast.success(`Reserva pendiente · canjeaste ${formatHoras(horasParaPagar(totalDinero))} horas`);
