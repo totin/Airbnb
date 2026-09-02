@@ -23,6 +23,9 @@ class PropiedadRepository:
             .first()
         )
 
+    def get_by_id(self, propiedad_id: int) -> Propiedad | None:
+        return self.obtener_por_id(propiedad_id)
+
     def obtener_por_anfitrion(self, anfitrion_id: int) -> list[Propiedad]:
         return (
             self.db.query(Propiedad)
