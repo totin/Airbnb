@@ -14,6 +14,9 @@ class AmenidadRepository:
         self.db.refresh(amenidad)
         return amenidad
 
+    def create(self, nombre: str) -> Amenidad:
+        return self.crear(Amenidad(nombre=nombre))
+
     def obtener_por_id(
         self,
         amenidad_id: int
@@ -24,6 +27,9 @@ class AmenidadRepository:
             .filter(Amenidad.id == amenidad_id)
             .first()
         )
+
+    def get_by_id(self, amenidad_id: int) -> Amenidad | None:
+        return self.obtener_por_id(amenidad_id)
 
     def obtener_por_nombre(
         self,
@@ -36,8 +42,14 @@ class AmenidadRepository:
             .first()
         )
 
+    def get_by_nombre(self, nombre: str) -> Amenidad | None:
+        return self.obtener_por_nombre(nombre)
+
     def obtener_todas(self) -> list[Amenidad]:
         return self.db.query(Amenidad).all()
+
+    def get_all(self) -> list[Amenidad]:
+        return self.obtener_todas()
 
     def obtener_propiedades_con_amenidades(
         self,

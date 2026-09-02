@@ -1,15 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { usuarios } from "./mock-data";
-import { HORAS_INICIALES } from "./millas";
+import {
+  getUsuarioPorEmail,
+  getSaldoHoras,
+  sumarHorasApi,
+  gastarHorasApi,
+  activarAnfitrionApi,
+} from "./api";
 import type { Usuario } from "./types";
-
-/**
- * Sesión de usuario (mock, en localStorage).
- * Endpoints reales sugeridos:
- *  - POST /auth/login   { email } -> 200 { usuario, token }
- *  - POST /auth/logout  -> 204
- *  - GET  /usuarios/me  -> 200 usuario
- */
 
 export type Rol = "huesped" | "anfitrion";
 
@@ -20,17 +17,12 @@ interface Sesion {
   cargando: boolean;
   login: (email: string) => Promise<Usuario>;
   logout: () => void;
-  /** PATCH /usuarios/{id} { es_anfitrion: true } */
-  activarAnfitrion: () => void;
-  /** Saldo del programa de fidelidad. GET /usuarios/{id}/horas */
+  activarAnfitrion: () => Promise<void>;
   horas: number;
-  /** POST /usuarios/{id}/horas/acreditar */
-  sumarHoras: (cantidad: number) => void;
-  /** Canje de horas al pagar una reserva. Devuelve false si no alcanza. */
-  gastarHoras: (cantidad: number) => boolean;
+  sumarHoras: (cantidad: number) => Promise<void>;
+  gastarHoras: (cantidad: number) => Promise<boolean>;
+  recargarSaldo: () => Promise<void>;
 }
-
-const horasKey = (id: string) => `estadia.horas.${id}`;
 
 const STORAGE_KEY = "estadia.sesion";
 const SesionCtx = createContext<Sesion | null>(null);
@@ -40,73 +32,84 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   const [cargando, setCargando] = useState(true);
   const [horas, setHoras] = useState(0);
 
-  useEffect(() => {
+  const sincronizarSaldo = useCallback(async (usuarioId: string) => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const u = JSON.parse(raw) as Usuario;
-        setUsuario(u);
-        const saldo = localStorage.getItem(horasKey(u.id));
-        setHoras(saldo === null ? HORAS_INICIALES : Number(saldo));
-      }
+      const saldo = await getSaldoHoras(usuarioId);
+      setHoras(saldo);
     } catch {
-      /* noop */
+      /* ignore */
     }
-    setCargando(false);
   }, []);
 
-  const login = useCallback(async (email: string) => {
-    // POST /auth/login { email }
-    const u = usuarios.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
-    if (!u) throw new Error("No existe una cuenta con ese email");
-    setUsuario(u);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-    const saldo = localStorage.getItem(horasKey(u.id));
-    setHoras(saldo === null ? HORAS_INICIALES : Number(saldo));
-    return u;
-  }, []);
+  useEffect(() => {
+    async function inicializar() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const u = JSON.parse(raw) as Usuario;
+          setUsuario(u);
+          await sincronizarSaldo(u.id);
+        }
+      } catch {
+        /* noop */
+      } finally {
+        setCargando(false);
+      }
+    }
+    void inicializar();
+  }, [sincronizarSaldo]);
+
+  const login = useCallback(
+    async (email: string) => {
+      const u = await getUsuarioPorEmail(email.trim());
+      setUsuario(u);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+      await sincronizarSaldo(u.id);
+      return u;
+    },
+    [sincronizarSaldo]
+  );
 
   const logout = useCallback(() => {
-    // POST /auth/logout
     setUsuario(null);
     setHoras(0);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  const activarAnfitrion = useCallback(() => {
-    // PATCH /usuarios/{id} { es_anfitrion: true }
-    setUsuario((u) => {
-      if (!u) return u;
-      const actualizado = { ...u, es_anfitrion: true };
-      const ref = usuarios.find((x) => x.id === u.id);
-      if (ref) ref.es_anfitrion = true;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(actualizado));
-      return actualizado;
-    });
-  }, []);
-
-  const guardarHoras = useCallback(
-    (nuevo: number) => {
-      setHoras(nuevo);
-      if (usuario) localStorage.setItem(horasKey(usuario.id), String(nuevo));
-    },
-    [usuario],
-  );
+  const activarAnfitrion = useCallback(async () => {
+    if (!usuario) return;
+    const actualizado = await activarAnfitrionApi(usuario.id);
+    setUsuario(actualizado);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(actualizado));
+  }, [usuario]);
 
   const sumarHoras = useCallback(
-    (cantidad: number) => guardarHoras(horas + Math.max(0, Math.round(cantidad))),
-    [guardarHoras, horas],
+    async (cantidad: number) => {
+      if (!usuario) return;
+      const cant = Math.max(0, Math.round(cantidad));
+      const nuevoSaldo = await sumarHorasApi(usuario.id, cant);
+      setHoras(nuevoSaldo);
+    },
+    [usuario]
   );
 
   const gastarHoras = useCallback(
-    (cantidad: number) => {
+    async (cantidad: number) => {
+      if (!usuario) return false;
       const costo = Math.max(0, Math.round(cantidad));
       if (costo > horas) return false;
-      guardarHoras(horas - costo);
+      const nuevoSaldo = await gastarHorasApi(usuario.id, costo);
+      setHoras(nuevoSaldo);
       return true;
     },
-    [guardarHoras, horas],
+    [usuario, horas]
   );
+
+  const recargarSaldo = useCallback(async () => {
+    if (usuario) {
+      await sincronizarSaldo(usuario.id);
+    }
+  }, [usuario, sincronizarSaldo]);
 
   const value = useMemo<Sesion>(
     () => ({
@@ -120,8 +123,9 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       horas,
       sumarHoras,
       gastarHoras,
+      recargarSaldo,
     }),
-    [usuario, cargando, login, logout, activarAnfitrion, horas, sumarHoras, gastarHoras],
+    [usuario, cargando, login, logout, activarAnfitrion, horas, sumarHoras, gastarHoras, recargarSaldo]
   );
 
   return <SesionCtx.Provider value={value}>{children}</SesionCtx.Provider>;
@@ -137,3 +141,4 @@ export function useSesion(): Sesion {
 export function useUsuarioId(): string {
   return useSesion().usuario?.id ?? "";
 }
+

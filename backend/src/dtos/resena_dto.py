@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
+from src.dtos.usuario_dto import UsuarioResponseDTO
 
 
 class ResenaCreateDTO(BaseModel):
@@ -16,6 +17,8 @@ class ResenaResponseDTO(BaseModel):
     id: int
     reserva_id: int
     autor_id: int
+    propiedad_id: Optional[int] = None
     puntaje: int
     comentario: Optional[str] = None
     fecha: date
+    autor: Optional[UsuarioResponseDTO] = None

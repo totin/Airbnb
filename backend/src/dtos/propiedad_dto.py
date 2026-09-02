@@ -1,5 +1,6 @@
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import Optional, Any
+from pydantic import BaseModel, Field, ConfigDict
+from src.dtos.usuario_dto import UsuarioResponseDTO
 
 
 class PropiedadImagenDTO(BaseModel):
@@ -8,8 +9,7 @@ class PropiedadImagenDTO(BaseModel):
     orden: int
     es_portada: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PropiedadCreateDTO(BaseModel):
@@ -19,7 +19,10 @@ class PropiedadCreateDTO(BaseModel):
     precio_noche: float
     capacidad: int
     anfitrion_id: int
-    imagenes: list[str] = Field(default_factory=list)  # base64 data URLs, orden = índice
+    amenidades: list[Any] = Field(default_factory=list)  # IDs o nombres de amenidades
+    imagenes: list[str] = Field(default_factory=list)  # data URLs o URLs
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 
 class PropiedadUpdateDTO(BaseModel):
@@ -28,6 +31,10 @@ class PropiedadUpdateDTO(BaseModel):
     ciudad: Optional[str] = None
     precio_noche: Optional[float] = None
     capacidad: Optional[int] = None
+    amenidades: Optional[list[Any]] = None
+    imagenes: Optional[list[str]] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 
 class AsociarAmenidadesDTO(BaseModel):
@@ -35,7 +42,7 @@ class AsociarAmenidadesDTO(BaseModel):
 
 
 class AgregarImagenesDTO(BaseModel):
-    imagenes: list[str]  # base64 data URLs a agregar
+    imagenes: list[str]
 
 
 class PropiedadResponseDTO(BaseModel):
@@ -46,7 +53,13 @@ class PropiedadResponseDTO(BaseModel):
     precio_noche: float
     capacidad: int
     anfitrion_id: int
-    imagenes: list[PropiedadImagenDTO] = []
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    imagenes: list[str] = Field(default_factory=list)
+    amenidades: list[str] = Field(default_factory=list)
+    amenidades_nombres: list[str] = Field(default_factory=list)
+    promedio_puntaje: Optional[float] = None
+    cantidad_resenas: int = 0
+    anfitrion: Optional[UsuarioResponseDTO] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

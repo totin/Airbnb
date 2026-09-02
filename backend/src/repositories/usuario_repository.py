@@ -27,8 +27,12 @@ class UsuarioRepository:
         
         return self.db.query(Usuario).filter(Usuario.email == email).first()
 
-    def update(self, usuario: Usuario) -> Usuario:
-        
+    def get_all(self) -> list[Usuario]:
+        return self.db.query(Usuario).order_by(Usuario.id).all()
+
+    def update(self, usuario: Usuario, **changes) -> Usuario:
+        for field, value in changes.items():
+            setattr(usuario, field, value)
         self.db.add(usuario)
         self.db.commit()
         self.db.refresh(usuario)

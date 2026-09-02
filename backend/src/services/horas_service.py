@@ -9,13 +9,19 @@ class HorasService:
     def obtener_saldo(self, usuario_id: int) -> SaldoHoras:
         saldo = self.db.query(SaldoHoras).filter(SaldoHoras.usuario_id == usuario_id).first()
         if not saldo:
-            raise ValueError(f"No existe saldo de horas para el usuario {usuario_id}")
+            saldo = SaldoHoras(usuario_id=usuario_id, horas=1000)
+            self.db.add(saldo)
+            self.db.commit()
+            self.db.refresh(saldo)
         return saldo
 
     def crear_saldo_inicial(self, usuario_id: int):
-        saldo = SaldoHoras(usuario_id=usuario_id, horas=0)
-        self.db.add(saldo)
-        self.db.commit()
+        saldo = self.db.query(SaldoHoras).filter(SaldoHoras.usuario_id == usuario_id).first()
+        if not saldo:
+            saldo = SaldoHoras(usuario_id=usuario_id, horas=1000)
+            self.db.add(saldo)
+            self.db.commit()
+            self.db.refresh(saldo)
         return saldo
 
     def sumar_horas(self, usuario_id: int, cantidad: int, reserva_id: int, tipo: TipoTransaccionHoras):
