@@ -46,13 +46,13 @@ def listar_reservas_de_anfitrion(anfitrion_id: int, db: Session = Depends(get_db
 @router.get("/{anfitrion_id}/ingresos", response_model=IngresosAnfitrionDTO)
 def obtener_ingresos_anfitrion(
     anfitrion_id: int,
-    desde: Optional[str] = Query("2020-01-01", description="Fecha inicio YYYY-MM-DD"),
-    hasta: Optional[str] = Query("2030-12-31", description="Fecha fin YYYY-MM-DD"),
+    desde: date = Query(date(2020, 1, 1), description="Fecha inicio YYYY-MM-DD"),
+    hasta: date = Query(date(2030, 12, 31), description="Fecha fin YYYY-MM-DD"),
     db: Session = Depends(get_db),
 ):
     """Calcula los ingresos facturados por un anfitrión en un período de tiempo."""
-    d_inicio = date.fromisoformat(desde)
-    d_fin = date.fromisoformat(hasta)
+    if desde >= hasta:
+        raise HTTPException(status_code=400, detail="La fecha desde debe ser anterior a hasta")
 
     props = db.query(Propiedad).filter(Propiedad.anfitrion_id == anfitrion_id).all()
     detalles = []
@@ -64,8 +64,8 @@ def obtener_ingresos_anfitrion(
             .filter(
                 Reserva.propiedad_id == p.id,
                 Reserva.estado == "confirmada",
-                Reserva.fecha_fin >= d_inicio,
-                Reserva.fecha_fin <= d_fin,
+                Reserva.fecha_inicio < hasta,
+                Reserva.fecha_fin > desde,
             )
             .all()
         )
@@ -96,4 +96,4 @@ def obtener_perfil_anfitrion(anfitrion_id: int, db: Session = Depends(get_db)):
             )
         return usuario
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))

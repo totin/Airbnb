@@ -92,6 +92,9 @@ class ReservaService:
         if fecha_inicio >= fecha_fin:
             raise ValueError("La fecha de inicio debe ser anterior a la de fin")
 
+        if fecha_inicio < date.today():
+            raise ValueError("No se puede reservar una propiedad antes de la fecha actual")
+
         # Validar solapamiento con reservas confirmadas
         solapada = (
             self.db.query(Reserva)
@@ -106,6 +109,20 @@ class ReservaService:
         if solapada:
             raise ValueError("Ya existe una reserva confirmada en ese rango de fechas")
 
+        pendiente_existente = (
+            self.db.query(Reserva)
+            .filter(
+                Reserva.propiedad_id == propiedad_id,
+                Reserva.huesped_id == huesped_id,
+                Reserva.estado == "pendiente",
+                Reserva.fecha_inicio < fecha_fin,
+                Reserva.fecha_fin > fecha_inicio,
+            )
+            .first()
+        )
+        if pendiente_existente:
+            raise ValueError("Ya tenés una solicitud pendiente para esas fechas")
+
         total = self._calcular_total(prop, fecha_inicio, fecha_fin)
 
         horas_ganadas = None
@@ -114,13 +131,6 @@ class ReservaService:
         metodo_str = str(metodo_pago).lower()
         if metodo_str == "horas":
             horas_utilizadas = round(total * 100)
-            # Valida saldo suficiente y descuenta antes de crear la reserva
-            self.horas_service.restar_horas(
-                usuario_id=huesped_id,
-                cantidad=horas_utilizadas,
-                reserva_id=None,
-                tipo=TipoTransaccionHoras.GASTADA,
-            )
         else:
             metodo_str = "dinero"
             horas_ganadas = round(total * 5)
@@ -137,16 +147,17 @@ class ReservaService:
             horas_utilizadas=horas_utilizadas,
         )
         self.db.add(reserva)
-        self.db.commit()
-        self.db.refresh(reserva)
-
-        if metodo_str == "dinero" and horas_ganadas:
-            self.horas_service.sumar_horas(
+        self.db.flush()
+        if metodo_str == "horas":
+            self.horas_service.restar_horas(
                 usuario_id=huesped_id,
-                cantidad=horas_ganadas,
+                cantidad=horas_utilizadas,
                 reserva_id=reserva.id,
-                tipo=TipoTransaccionHoras.GANADA,
+                tipo=TipoTransaccionHoras.GASTADA,
             )
+        else:
+            self.db.commit()
+        self.db.refresh(reserva)
 
         return self.enriquecer_reserva(reserva)
 
@@ -213,7 +224,7 @@ class ReservaService:
                     reserva_id=reserva.id,
                     tipo=TipoTransaccionHoras.DEVUELTA,
                 )
-            elif reserva.metodo_pago == "dinero" and reserva.horas_ganadas:
+            elif reserva.metodo_pago == "dinero" and reserva.horas_ganadas and reserva.estado == "confirmada":
                 try:
                     self.horas_service.restar_horas(
                         usuario_id=reserva.huesped_id,
@@ -224,10 +235,27 @@ class ReservaService:
                 except ValueError:
                     pass  # Si ya no tiene saldo para restar, continuar
 
+        if nuevo_estado == "confirmada" and reserva.metodo_pago == "dinero" and reserva.horas_ganadas:
+            ya_acreditada = (
+                self.db.query(TransaccionHoras)
+                .filter(
+                    TransaccionHoras.reserva_id == reserva.id,
+                    TransaccionHoras.tipo == TipoTransaccionHoras.GANADA,
+                )
+                .first()
+            )
+            if not ya_acreditada:
+                self.horas_service.sumar_horas(
+                    usuario_id=reserva.huesped_id,
+                    cantidad=reserva.horas_ganadas,
+                    reserva_id=reserva.id,
+                    tipo=TipoTransaccionHoras.GANADA,
+                )
+
         reserva.estado = nuevo_estado
         self.db.commit()
         self.db.refresh(reserva)
         return self.enriquecer_reserva(reserva)
 
     def cancelar_reserva(self, reserva_id: int, usuario_id: int) -> dict:
-        return self.cambiar_estado_reserva(reserva_id, "cancelada", actor_id=usuario_id)
+        return self.cambiar_estado_reserva(reserva_id, "cancelada", actor_id=usuario_id)
