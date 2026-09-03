@@ -6,7 +6,7 @@ from src.db.models.reserva import Reserva, EstadoReserva, MetodoPago
 from src.db.models.propiedad import Propiedad
 from src.db.models.usuario import Usuario
 from src.db.models.resena import Resena
-from src.db.models.transaccion_horas import TipoTransaccionHoras
+from src.db.models.transaccion_horas import TipoTransaccionHoras, TransaccionHoras
 from src.services.horas_service import HorasService
 from src.services.propiedad_service import PropiedadService
 from src.dtos.usuario_dto import UsuarioResponseDTO
