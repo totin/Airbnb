@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSesion } from "@/lib/auth";
-import { usuarios } from "@/lib/mock-data";
+import { getUsuarios } from "@/lib/api";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -28,6 +29,12 @@ function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [cargando, setCargando] = useState(false);
+
+  const { data: usuarios = [], isLoading: cargandoUsuarios, isError: errorUsuarios } = useQuery({
+    queryKey: ["usuarios"],
+    queryFn: getUsuarios,
+    staleTime: 30_000,
+  });
 
   async function entrar(mail: string) {
     setCargando(true);
@@ -86,7 +93,7 @@ function Login() {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <Button type="submit" className="w-full" disabled={cargando}>
+        <Button type="submit" className="w-full" disabled={cargando || cargandoUsuarios}>
           Entrar
         </Button>
         <p className="text-center text-sm text-muted-foreground">
@@ -99,7 +106,13 @@ function Login() {
 
       <div className="surface-card mt-6 space-y-2 p-5">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">Cuentas de prueba</p>
-        {usuarios.map((u) => (
+        {errorUsuarios ? (
+          <p className="text-sm text-destructive">No se pudieron cargar las cuentas de prueba.</p>
+        ) : cargandoUsuarios ? (
+          <p className="text-sm text-muted-foreground">Cargando cuentas...</p>
+        ) : usuarios.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No hay cuentas disponibles.</p>
+        ) : usuarios.map((u) => (
           <button
             key={u.id}
             onClick={() => void entrar(u.email)}
@@ -117,3 +130,4 @@ function Login() {
     </main>
   );
 }
+

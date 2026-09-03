@@ -1,21 +1,45 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { money } from "@/components/property-card";
 import { estadoVariant } from "@/components/estado-badge";
+import { ImageDropzone } from "@/components/image-dropzone";
 import {
+  actualizarPropiedad,
   cambiarEstadoReserva,
+  eliminarPropiedad,
+  getAmenidades,
   getIngresos,
   getPropiedadesDeAnfitrion,
   getReservasDeAnfitrion,
 } from "@/lib/api";
+import type { PropiedadConDatos } from "@/lib/types";
 import { useUsuarioId } from "@/lib/auth";
 import { RequireAuth } from "@/components/require-auth";
 
@@ -68,29 +92,87 @@ function Anfitrion() {
 
 function Propiedades() {
   const usuarioId = useUsuarioId();
+  const qc = useQueryClient();
   const { data: props = [] } = useQuery({
     queryKey: ["propiedades-anfitrion", usuarioId],
     queryFn: () => getPropiedadesDeAnfitrion(usuarioId),
   });
 
+  const [editando, setEditando] = useState<PropiedadConDatos | null>(null);
 
+  const invalidar = () => {
+    qc.invalidateQueries({ queryKey: ["propiedades-anfitrion"] });
+    qc.invalidateQueries({ queryKey: ["propiedades"] });
+    qc.invalidateQueries({ queryKey: ["top"] });
+  };
+
+  const borrar = useMutation({
+    // DELETE /propiedades/{id}
+    mutationFn: (id: string) => eliminarPropiedad(id, usuarioId),
+    onSuccess: () => {
+      toast.success("Publicación eliminada");
+      invalidar();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
       <div className="space-y-3">
         {props.map((p) => (
-          <div key={p.id} className="surface-card flex items-center justify-between gap-4 p-4">
-            <div>
+          <div key={p.id} className="surface-card flex flex-wrap items-center gap-4 p-4">
+            {p.imagenes?.[0] && (
+              <img
+                src={p.imagenes[0]}
+                alt={`Foto de ${p.titulo}`}
+                loading="lazy"
+                className="size-16 rounded-md object-cover"
+              />
+            )}
+            <div className="min-w-48 flex-1">
               <h3 className="text-lg">{p.titulo}</h3>
               <p className="text-sm text-muted-foreground">
                 {p.ciudad} · {p.capacidad} huéspedes · {p.cantidad_resenas} reseñas
               </p>
             </div>
             <p className="font-semibold">{money(p.precio_noche)}</p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setEditando(p)}>
+                <Pencil className="size-4" />
+                Editar
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="destructive">
+                    <Trash2 className="size-4" />
+                    Borrar
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Borrar “{p.titulo}”?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Se eliminará la publicación y sus favoritos. No se puede deshacer.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => borrar.mutate(p.id)}>Borrar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         ))}
         {props.length === 0 && <p className="text-muted-foreground">Todavía no publicaste nada.</p>}
       </div>
+
+      <DialogEditar
+        propiedad={editando}
+        usuarioId={usuarioId}
+        onClose={() => setEditando(null)}
+        onSaved={invalidar}
+      />
 
       <Link
         to="/publicar"
@@ -103,6 +185,139 @@ function Propiedades() {
         <span className="text-sm font-medium text-primary">Ir a publicar →</span>
       </Link>
     </div>
+  );
+}
+
+function DialogEditar({
+  propiedad,
+  usuarioId,
+  onClose,
+  onSaved,
+}: {
+  propiedad: PropiedadConDatos | null;
+  usuarioId: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { data: amenidades = [] } = useQuery({ queryKey: ["amenidades"], queryFn: getAmenidades });
+  const [form, setForm] = useState({
+    titulo: "",
+    ciudad: "",
+    direccion: "",
+    precio_noche: "",
+    capacidad: "",
+  });
+  const [sel, setSel] = useState<string[]>([]);
+  const [imagenes, setImagenes] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!propiedad) return;
+    setForm({
+      titulo: propiedad.titulo,
+      ciudad: propiedad.ciudad,
+      direccion: propiedad.direccion,
+      precio_noche: String(propiedad.precio_noche),
+      capacidad: String(propiedad.capacidad),
+    });
+    setSel(propiedad.amenidades);
+    setImagenes(propiedad.imagenes ?? []);
+  }, [propiedad]);
+
+  const guardar = useMutation({
+    // PUT /propiedades/{id}
+    mutationFn: () =>
+      actualizarPropiedad(propiedad!.id, usuarioId, {
+        titulo: form.titulo,
+        ciudad: form.ciudad,
+        direccion: form.direccion,
+        precio_noche: Number(form.precio_noche),
+        capacidad: Number(form.capacidad),
+        amenidades: sel,
+        imagenes,
+      }),
+    onSuccess: () => {
+      toast.success("Publicación actualizada");
+      onSaved();
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={!!propiedad} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Editar publicación</DialogTitle>
+        </DialogHeader>
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            guardar.mutate();
+          }}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(
+              [
+                ["titulo", "Título", "text"],
+                ["ciudad", "Ciudad", "text"],
+                ["direccion", "Dirección", "text"],
+                ["precio_noche", "Precio por noche", "number"],
+                ["capacidad", "Capacidad (huéspedes)", "number"],
+              ] as const
+            ).map(([key, label, type]) => (
+              <div key={key} className="space-y-1.5">
+                <Label htmlFor={`edit-${key}`}>{label}</Label>
+                <Input
+                  id={`edit-${key}`}
+                  type={type}
+                  required
+                  min={type === "number" ? 1 : undefined}
+                  value={form[key]}
+                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs uppercase text-muted-foreground">Fotos</Label>
+            <ImageDropzone imagenes={imagenes} onChange={setImagenes} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs uppercase text-muted-foreground">Amenidades</Label>
+            <div className="flex flex-wrap gap-2">
+              {amenidades.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() =>
+                    setSel((s) => (s.includes(a.id) ? s.filter((x) => x !== a.id) : [...s, a.id]))
+                  }
+                >
+                  <Badge
+                    variant={sel.includes(a.id) ? "default" : "outline"}
+                    className="cursor-pointer font-normal"
+                  >
+                    {a.nombre}
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={guardar.isPending}>
+              Guardar cambios
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

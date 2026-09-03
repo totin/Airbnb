@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, not_, exists
+from sqlalchemy import and_, not_, exists, func
 from src.db.models.propiedad import Propiedad
 from src.db.models.reserva import Reserva
 
@@ -23,6 +23,9 @@ class PropiedadRepository:
             .first()
         )
 
+    def get_by_id(self, propiedad_id: int) -> Propiedad | None:
+        return self.obtener_por_id(propiedad_id)
+
     def obtener_por_anfitrion(self, anfitrion_id: int) -> list[Propiedad]:
         return (
             self.db.query(Propiedad)
@@ -37,9 +40,12 @@ class PropiedadRepository:
         precio_max: float | None = None
     ) -> list[Propiedad]:
 
-        query = self.db.query(Propiedad).filter(
-            Propiedad.ciudad == ciudad
-        )
+        query = self.db.query(Propiedad)
+
+        if ciudad:
+            query = query.filter(
+                func.unaccent(Propiedad.ciudad).ilike(func.unaccent(f"%{ciudad}%"))
+            )
 
         if huespedes is not None:
             query = query.filter(
@@ -62,9 +68,12 @@ class PropiedadRepository:
         precio_max: float | None = None
     ) -> list[Propiedad]:
 
-        query = self.db.query(Propiedad).filter(
-            Propiedad.ciudad == ciudad
-        )
+        query = self.db.query(Propiedad)
+
+        if ciudad:
+            query = query.filter(
+                func.unaccent(Propiedad.ciudad).ilike(func.unaccent(f"%{ciudad}%"))
+            )
 
         if huespedes is not None:
             query = query.filter(
