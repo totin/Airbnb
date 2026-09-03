@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 from typing import Optional
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 from src.db.models.reserva import Reserva, EstadoReserva, MetodoPago
 from src.db.models.propiedad import Propiedad
@@ -179,7 +180,10 @@ class ReservaService:
             self.db.query(Reserva)
             .join(Propiedad, Reserva.propiedad_id == Propiedad.id)
             .filter(Propiedad.anfitrion_id == anfitrion_id)
-            .order_by(Reserva.fecha_inicio.desc())
+            .order_by(
+                case((Reserva.estado == EstadoReserva.PENDIENTE.value, 0), else_=1),
+                Reserva.fecha_inicio.desc(),
+            )
         )
         return [self.enriquecer_reserva(r) for r in query.all()]
 
